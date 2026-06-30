@@ -2,6 +2,7 @@ package com.rva.desktop;
 
 import static com.rva.desktop.CellType.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 public class Gameboard {
@@ -17,10 +18,12 @@ public class Gameboard {
     // answer
     private String answer_text;
     private int answer_result;
+    private int step;
     private boolean answer;
     // Complex propetries
     private CellType[][] board;
-    private Scanner in = new Scanner(System.in);
+
+    private Scanner in = new Scanner(System.in, StandardCharsets.UTF_8.name());
     // public methods
     public Gameboard(int row, int column, int lives) {
         this.row = row;
@@ -32,12 +35,13 @@ public class Gameboard {
         this.answer_result = 0;
         this.answer_text = "";
         this.running = true;
+        this.step = 0;
         this.initialGame();
     }
 
     public boolean start() {
         System.out.println();
-        System.out.println("Начинаем играть ( ДА / НЕТ ) ?");
+        System.out.print("Начинаем играть ( ДА / НЕТ ) ? ");
         String answer = this.in.next().toUpperCase();
         if (answer.equals("ДА")) {
             return true;
@@ -85,6 +89,7 @@ public class Gameboard {
             RowColumn step = getStep(this.currentRow, this.currentColumn);
 
             this.makeStep(step.row(), step.column());
+            this.step += 1;
             if ( ! ( ( step.row() == row) && (step.column() == column) ) ) {
                 this.board[row][column] = TRACK;
                 error = false;
@@ -150,12 +155,12 @@ public class Gameboard {
         String symbol;
         String line = "+";
         this.clearScreen();
-        System.out.println(String.format("Жизни  : %d   Уровень: %d  Заработано %d очков", this.lives, this.level, this.score));
+        System.out.println(String.format("Жизни  : %d   Уровень: %d.  Заработано %d очков. Сделано %d шагов."
+                , this.lives, this.level, this.score, this.step));
         for (int j = 0; j < this.column; j++) {  line = line + "--+";  }
         System.out.println(line);
         for (int i = 0; i < this.row; i++) {
             for (int j = 0; j < this.column; j++) {
-                symbol = "  ";
                 switch (this.board[i][j]) {
                     case CASTLE:
                         symbol = "\uD83C\uDFF0"; // "З ";
@@ -184,7 +189,7 @@ public class Gameboard {
         if (! this.answer) {
             System.out.println("Правильный ответ для вопроса");
             System.out.println("'" + this.answer_text + "'");
-            System.out.println(String.format("Это - %d", this.answer_result));
+            System.out.println(String.format("Это - %d ...  и минус одна жизнь, увы.", this.answer_result));
         }
 
     }
@@ -242,7 +247,7 @@ public class Gameboard {
     private void win() {
         this.clearScreen();
         System.out.println("Отлично! Вы дошли!!!");
-        System.out.println(String.format("Заработано %d очков", this.score));
+        System.out.println(String.format("Заработано %d очков за %d шагов.", this.score, this.step));
         System.out.println("Поздравляю с победой!!!");
         System.exit(0);
     }
@@ -274,25 +279,10 @@ public class Gameboard {
         this.answer = monster.getAnswer();
         this.answer_result = monster.getResult();
         this.answer_text = monster.getMessage();
+        monster = null;
         return this.answer;
     }
-
-    // setters and getters
-    public int getRow() { return row; }
-
-    public void setRow(int row) { this.row = row; }
-
-    public int getColumn() { return column; }
-
-    public void setColumn(int column) { this.column = column; }
-
-    public int getLevel() { return level; }
+// setters and getters
 
     public void setLevel(int level) { this.level = level; }
-
-    public int getLives() { return lives; }
-
-    public void setLives(int lives) { this.lives = lives; }
-
-    public CellType[][] getBoard() { return board; }
 }
