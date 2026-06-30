@@ -1,0 +1,298 @@
+package com.rva.desktop;
+
+import static com.rva.desktop.CellType.*;
+
+import java.util.Scanner;
+
+public class Gameboard {
+    // Simple propetries
+    private int row;
+    private int column;
+    private int level;
+    private int lives;
+    private int currentColumn;
+    private int currentRow;
+    private int score;
+    private boolean running;
+    // answer
+    private String answer_text;
+    private int answer_result;
+    private boolean answer;
+    // Complex propetries
+    private CellType[][] board;
+    private Scanner in = new Scanner(System.in);
+    // public methods
+    public Gameboard(int row, int column, int lives) {
+        this.row = row;
+        this.column = column;
+        this.lives = lives;
+        this.score = 0;
+        this.board = new CellType[row][column];
+        this.answer = true;
+        this.answer_result = 0;
+        this.answer_text = "";
+        this.running = true;
+        this.initialGame();
+    }
+
+    public boolean start() {
+        System.out.println();
+        System.out.println("Начинаем играть ( ДА / НЕТ ) ?");
+        String answer = this.in.next().toUpperCase();
+        if (answer.equals("ДА")) {
+            return true;
+        } else {
+            System.out.println(answer);
+            System.out.println("Почему ты не захотел со мной играть(");
+            System.out.println("Приходи ещё!");
+            return false;
+        }
+
+    }
+
+    public int inputLevel() {
+        int level;
+        while (true) {
+            System.out.print("Введите уровень от 1 до 3: ");
+            if (this.in.hasNextInt()) {
+                level = this.in.nextInt();
+                if (level >= 1 && level <= 3) {
+                    break;
+                } else {
+                    System.out.println("Ошибка: число должно быть от 1 до 3. Повторите ввод.");
+                }
+            } else {
+                System.out.println("Ошибка: введите целое число.");
+                this.in.next(); // очищаем некорректный ввод
+            }
+        }
+        // Scanner не закрываем, чтобы не закрыть System.in
+        return level;
+    }
+
+    public void loop() {
+        int column;
+        int row;
+        boolean error = false;
+
+        while (this.running) {
+            this.show();
+            if (error) { System.out.println("Не стоит топтатся на месте и утыкаться в стенку !!!"); }
+            System.out.println(String.format("Ваше текущее положение: строка %d, колонка %d",
+                    this.currentRow + 1, this.currentColumn + 1));
+            row = this.currentRow;
+            column = this.currentColumn;
+            RowColumn step = getStep(this.currentRow, this.currentColumn);
+
+            this.makeStep(step.row(), step.column());
+            if ( ! ( ( step.row() == row) && (step.column() == column) ) ) {
+                this.board[row][column] = TRACK;
+                error = false;
+                                                                           }
+            else { error = true;}
+        }
+    }
+    private RowColumn getStep(int row, int column) {
+
+        String input;
+        while (true) {
+            System.out.println("Для следующего шага введите ( Л / П / В / Н ):");
+            input = this.in.next();
+            if (input.matches("[ЛлПпВвНнБб]")) {
+                if (input.matches("[Лл]")) {
+                    column -= 1;
+                    if (column <= 0) {column = 0;}
+                    break;                    }
+                if (input.matches("[Пп]")) {
+                    column += 1;
+                    if (column >= this.column) { column = this.column - 1;}
+                    break;                    }
+                if (input.matches("[Вв]")) {
+                    row -= 1;
+                    if (row <= 0) {row = 0;}
+                    break;                    }
+                if (input.matches("[Нн]")) {
+                    row += 1;
+                    if (row >= this.column) { row = this.row - 1;}
+                    break;                    }
+                if (input.matches("[Бб]")) { this.lose(); }
+                                                }
+            else {
+                System.out.println("\nВы ошиблись в выборе направления!!!\n Повторите ввод\n");
+                 }
+
+                     }
+
+        return new RowColumn( column, row );
+    }
+    public void help() {
+        this.clearScreen();
+        System.out.println("Игра 'Волшебное путешествие'");
+        System.out.println("  Вам (" + Character.toString(0x1F471)
+                + ") необходимо добраться до замка (" + "\uD83C\uDFF0"
+                +"), преодолевая испытания разных монстров.");
+        System.out.println("  " + Character.toString(0x1F47B)
+                + "(монстр большой) и " +  Character.toString(0x1F47D)
+                + "(монстр маленький) - разные виды монстров.");
+        System.out.println("  Каждый вид монстра будет задавать разные задания.");
+        System.out.println("  Если Вы неправильно решаете задачу монстра, то снимается одна жизнь. ");
+        System.out.println(String.format("  Жизней всего %d.", this.lives));
+        System.out.println("  Вы можете двигаться только по горизонтали/вертикали на одну клетку. Ходить по диагонали запрещено.");
+        System.out.println("  Ход осуществляется вводом одной буквы направления.");
+        System.out.println("  Л для хода влево.");
+        System.out.println("  П для хода вправо.");
+        System.out.println("  В для хода вверх.");
+        System.out.println("  Н для хода вниз.");
+    }
+
+    // private methods
+    private void show() {
+        String symbol;
+        String line = "+";
+        this.clearScreen();
+        System.out.println(String.format("Жизни  : %d   Уровень: %d  Заработано %d очков", this.lives, this.level, this.score));
+        for (int j = 0; j < this.column; j++) {  line = line + "--+";  }
+        System.out.println(line);
+        for (int i = 0; i < this.row; i++) {
+            for (int j = 0; j < this.column; j++) {
+                symbol = "  ";
+                switch (this.board[i][j]) {
+                    case CASTLE:
+                        symbol = "\uD83C\uDFF0"; // "З ";
+                        break;
+                    case BIG_MONSTER:
+                        symbol = Character.toString(0x1F47B); //"Мб";
+                        break;
+                    case LITTLE_MONSTER:
+                        symbol = Character.toString(0x1F47D); // "Мм";
+                        break;
+                    case PLAYER:
+                        symbol =  Character.toString(0x1F471);  // "Гг";
+                        break;
+                    case TRACK:
+                        symbol = "..";
+                        break;
+                    default:
+                        symbol = "  ";
+                }
+                System.out.print("|" + symbol);
+            }
+            System.out.println("|");
+            System.out.println(line);
+        }
+
+        if (! this.answer) {
+            System.out.println("Правильный ответ для вопроса");
+            System.out.println("'" + this.answer_text + "'");
+            System.out.println(String.format("Это - %d", this.answer_result));
+        }
+
+    }
+
+    private void initialGame() {
+        // Clear all board
+        for (int i = 0; i < this.row; i++) {
+            for (int j = 0; j < this.column; j++) {
+                this.board[i][j] = EMPTY;
+            }
+        }
+        // Set Hero
+        int randomInt = (int) (Math.random() * (this.column - 1));
+        this.board[this.row - 1][randomInt] = PLAYER;
+        this.currentRow = this.row - 1;
+        this.currentColumn = randomInt;
+        // set Castle
+        randomInt = (int) (Math.random() * (this.column - 1));
+        int randomInt100;
+        this.board[0][randomInt] = CASTLE;
+        // set Monsters
+        for (int i = 0; i < this.row - 1; i++) {
+            for (int j = 0; j < (this.column); j++) {
+                randomInt = (int) (Math.random() * (this.column - 1));
+                if (this.board[i][randomInt] == EMPTY) {
+                    randomInt100 = (int) (Math.random() * ((100 - 1) + 1)) + 1;
+                    if (randomInt100 < 50) { this.board[i][randomInt] = BIG_MONSTER; }
+                    else                   { this.board[i][randomInt] = LITTLE_MONSTER; }
+                }
+            }
+        }
+    }
+
+    private void clearScreen() {
+        for (int i=0; i<80; i++) { System.out.println(); }
+    }
+
+
+    private void makeStep(int row, int column){
+        this.answer = true;
+        this.board[this.currentRow][currentColumn] = EMPTY;
+        this.currentRow = row;
+        this.currentColumn = column;
+        this.check();
+        this.board[this.currentRow][currentColumn] = PLAYER;
+    }
+
+    private void lose() {
+        this.clearScreen();
+        System.out.println("Увы, Вы проиграли... ");
+        System.out.println("Попробуем еще раз? Надо запустить игру снова.");
+        System.exit(1);
+    }
+
+    private void win() {
+        this.clearScreen();
+        System.out.println("Отлично! Вы дошли!!!");
+        System.out.println(String.format("Заработано %d очков", this.score));
+        System.out.println("Поздравляю с победой!!!");
+        System.exit(0);
+    }
+
+    private void check() {
+        if (this.lives == 0) { this.lose(); }
+        if (this.board[this.currentRow][this.currentColumn] == CASTLE) { this.win(); }
+        if (this.board[this.currentRow][this.currentColumn] == LITTLE_MONSTER) {
+            if (! this.talkWithMonster(LITTLE_MONSTER)) { this.lives = this.lives - 1; }
+            else                                        { this.score += 1;}
+        }
+        if (this.board[this.currentRow][this.currentColumn] == BIG_MONSTER) {
+           if (! this.talkWithMonster(BIG_MONSTER)) { this.lives = this.lives - 1; }
+           else                                     { this.score += 10;}
+                                                                                      }
+    }
+
+    private boolean talkWithMonster(CellType type){
+        this.clearScreen();
+        Monster monster;
+        if (type == LITTLE_MONSTER) {
+            monster = new Monster(this.level);
+            System.out.println("Опаньки! На пути монстр.");
+                                    }
+        else {
+            monster = new BigMonster(this.level);
+            System.out.println("Обана! Влипли! Большой монстр.");
+             }
+        this.answer = monster.getAnswer();
+        this.answer_result = monster.getResult();
+        this.answer_text = monster.getMessage();
+        return this.answer;
+    }
+
+    // setters and getters
+    public int getRow() { return row; }
+
+    public void setRow(int row) { this.row = row; }
+
+    public int getColumn() { return column; }
+
+    public void setColumn(int column) { this.column = column; }
+
+    public int getLevel() { return level; }
+
+    public void setLevel(int level) { this.level = level; }
+
+    public int getLives() { return lives; }
+
+    public void setLives(int lives) { this.lives = lives; }
+
+    public CellType[][] getBoard() { return board; }
+}
